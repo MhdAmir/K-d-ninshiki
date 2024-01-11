@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture Recognition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+    <video id="webcam" width="640" height="480" autoplay></video>
+    <canvas id="output" width="640" height="480"></canvas>
+    <script>
+        const actions = ['hello', 'thanks', 'iloveyou'];
+        let model;
+
+        const sequence = [];
+        const sentence = [];
+        const predictions = [];
+        const threshold = 0.5;
+
+        const webcam = document.getElementById('webcam');
+        const outputCanvas = document.getElementById('output');
+        const ctx = outputCanvas.getContext('2d');
+
+        async function setupWebcam() {
+            console.log(navigator.mediaDevices);  // Log navigator.mediaDevices
+            const stream = await navigator.mediaDevices.getUserMedia({ 'video': true });
+            webcam.srcObject = stream;
+
+            return new Promise((resolve, reject) => {
+                webcam.onloadedmetadata = () => {
+                    resolve();
+                };
+            });
+        }
+        
+        async function loadModel() {
+            model = await tf.loadLayersModel('model.json');
+        }
+
+        async function detectHands() {
+            const imageCapture = new ImageCapture(webcam.srcObject.getVideoTracks()[0]);
+            const videoSettings = webcam.srcObject.getVideoTracks()[0].getSettings();
+            outputCanvas.width = videoSettings.width;
+            outputCanvas.height = videoSettings.height;
+
+            // Your logic for hand detection using handpose or other libraries goes here
+
+            requestAnimationFrame(detectHands);
+        }
+
+        async function predictKeyPoints() {
+            const keypoints = []; // Implement your logic for extracting keypoints
+
+            sequence.push(keypoints);
+            sequence = sequence.slice(-30);
+
+            if (sequence.length === 30 && model) {
+                const inputTensor = tf.tensor2d([sequence.flat()]);
+                const res = model.predict(inputTensor).dataSync();
+                const prediction = actions[res.indexOf(Math.max(...res))];
+
+                console.log(prediction);
+                predictions.push(res.indexOf(Math.max(...res)));
+
+                // Implement your logic for visualization here
+            }
+
+            requestAnimationFrame(predictKeyPoints);
+        }
+
+        async function main() {
+            await setupWebcam();
+            await loadModel();
+            detectHands();
+            predictKeyPoints();
+        }
+
+        main();
+    </script>
+</body>
+</html>
